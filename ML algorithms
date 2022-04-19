@@ -1,0 +1,201 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn import datasets, linear_model
+import numpy as np
+import seaborn as sns
+df = pd.read_excel (r'FinalTensileHardness.xlsx')
+display(df.head(5))
+
+plt.figure(figsize=(12,8))
+sns.heatmap(round(df.describe()[1:].transpose(),2),linewidth=2,annot=True,fmt="f",cmap="YlGnBu")
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=12)
+plt.title("Variables summary")
+plt.show()
+
+fig, ax2 = plt.subplots(2, 4, figsize=(20, 20))
+sns.distplot(df['RPM'],ax=ax2[0][0])
+sns.distplot(df['TS'],ax=ax2[0][1])
+sns.distplot(df['PP'],ax=ax2[0][2])
+sns.distplot(df['AL'],ax=ax2[0][3])
+sns.distplot(df['RPM2'],ax=ax2[1][0])
+sns.distplot(df['TS2'],ax=ax2[1][1])
+sns.distplot(df['AL2'],ax=ax2[1][2])
+sns.distplot(df['Tensile'],ax=ax2[1][3])
+
+sns.pairplot(df)
+
+fig, ax2 = plt.subplots(2,3, figsize=(16, 16))
+sns.regplot('Tensile','RPM',data=df,ax=ax2[0][0])
+sns.regplot('Tensile','TS',data=df,ax=ax2[0][1])
+sns.regplot('Tensile','AL',data=df,ax=ax2[0][2])
+sns.regplot('Tensile','RPM2',data=df,ax=ax2[1][0])
+sns.regplot('Tensile','TS2',data=df,ax=ax2[1][1])
+sns.regplot('Tensile','AL2',data=df,ax=ax2[1][2])
+
+cor = df.corr()
+
+mask = np.zeros_like(cor)
+mask[np.triu_indices_from(mask)] = True
+
+plt.figure(figsize=(12,10))
+
+with sns.axes_style("white"):
+    sns.heatmap(cor,annot=True,linewidth=2,
+                mask = mask,cmap="YlGnBu")
+plt.title("Correlation between variables")
+plt.show()
+
+from sklearn.model_selection import KFold, cross_val_score, train_test_split
+# split into inputs and outputs
+y=df["Tensile"]
+
+x=df.drop('Tensile',axis=1)
+
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.1)
+
+# Fitting Random Forest Regression to the dataset
+# import the regressor
+from sklearn.ensemble import RandomForestRegressor
+
+# create regressor object
+regressor = RandomForestRegressor(n_estimators = 5,random_state = 1)
+
+# fit the regressor with x and y data
+regressor.fit(x_train, y_train)
+
+from sklearn.metrics import mean_absolute_error
+# make predictions
+yhat = regressor.predict(x_test)
+# evaluate predictions
+mae = mean_absolute_error(y_test, yhat)
+print('MAE: %.3f' % mae)
+from sklearn.metrics import mean_squared_error
+print(mean_squared_error(y_test, yhat))
+from sklearn.metrics import r2_score
+print(r2_score(y_test, yhat))
+
+#Decision Tree Regressor
+from sklearn.tree import DecisionTreeRegressor
+Decisionregressor = DecisionTreeRegressor(random_state=0)
+cross_val_score(regressor, x, y, cv=10)
+Decisionregressor.fit(x_train, y_train)
+
+from sklearn.metrics import mean_absolute_error
+# make predictions
+yhat = Decisionregressor.predict(x_test)
+# evaluate predictions
+mae = mean_absolute_error(y_test, yhat)
+print('MAE: %.3f' % mae)
+from sklearn.metrics import mean_squared_error
+print(mean_squared_error(y_test, yhat))
+from sklearn.metrics import r2_score
+print(r2_score(y_test, yhat))
+
+# SVR 
+from sklearn.svm import SVR
+SVRregressor = SVR(kernel = 'rbf')
+SVRregressor.fit(x_train, y_train)
+
+from sklearn.metrics import mean_absolute_error
+# make predictions
+yhat = SVRregressor.predict(x_test)
+# evaluate predictions
+mae = mean_absolute_error(y_test, yhat)
+print('MAE: %.3f' % mae)
+from sklearn.metrics import mean_squared_error
+print(mean_squared_error(y_test, yhat))
+from sklearn.metrics import r2_score
+print(r2_score(y_test, yhat))
+
+#KNN
+from sklearn import neighbors
+model = neighbors.KNeighborsRegressor(n_neighbors = 5)
+model.fit(x_train, y_train)
+from sklearn.metrics import mean_absolute_error
+# make predictions
+yhat = model.predict(x_test)
+# evaluate predictions
+mae = mean_absolute_error(y_test, yhat)
+print('MAE: %.3f' % mae)
+from sklearn.metrics import mean_squared_error
+print(mean_squared_error(y_test, yhat))
+from sklearn.metrics import r2_score
+print(r2_score(y_test, yhat))
+
+# importing the libraries
+from keras.models import Sequential
+from keras.layers import Dense
+import tensorflow as tf
+from tensorflow import keras
+
+# create ANN model
+model = Sequential()
+
+# Defining the Input layer and FIRST hidden layer, both are same!
+model.add(Dense(units=5, input_dim=8, kernel_initializer='normal', activation='relu'))
+
+# Defining the Second layer of the model
+# after the first layer we don't have to specify input_dim as keras configure it automatically
+model.add(Dense(units=5, kernel_initializer='normal', activation='tanh'))
+
+# The output neuron is a single fully connected node 
+# Since we will be predicting a single number
+model.add(Dense(1, kernel_initializer='normal'))
+
+# Compiling the model
+model.compile(loss='mean_squared_error', optimizer='adam')
+
+print(model.summary())
+
+# Separate Target Variable and Predictor Variables
+TargetVariable=['Tensile']
+Predictors=['RPM', 'TS', 'PP', 'AL', 'RPM2', 'TS2','PP2','AL2']
+
+X=df[Predictors].values
+y=df[TargetVariable].values
+
+### Sandardization of data ###
+from sklearn.preprocessing import StandardScaler
+PredictorScaler=StandardScaler()
+TargetVarScaler=StandardScaler()
+
+# Storing the fit object for later reference
+PredictorScalerFit=PredictorScaler.fit(x)
+TargetVarScalerFit=TargetVarScaler.fit(y)
+
+# Generating the standardized values of X and y
+X=PredictorScalerFit.transform(x)
+y=TargetVarScalerFit.transform(y)
+
+# Split the data into training and testing set
+#from sklearn.model_selection import train_test_split
+#x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+
+# Quick sanity check with the shapes of Training and testing datasets
+print(x_train.shape)
+print(y_train.shape)
+print(x_test.shape)
+print(y_test.shape)
+
+# Fitting the ANN to the Training set
+model.fit(x_train, y_train ,batch_size = 15, epochs = 5, verbose=0)
+
+# Generating Predictions on testing data
+Predictions=model.predict(x_test)
+
+# Scaling the predicted Price data back to original price scale
+Predictions=TargetVarScalerFit.inverse_transform(Predictions)
+
+# Scaling the y_test Price data back to original price scale
+y_test_orig=TargetVarScalerFit.inverse_transform(y_test)
+
+# Scaling the test data back to original scale
+Test_Data=PredictorScalerFit.inverse_transform(x_test)
+
+TestingData=pd.DataFrame(Test_Data, columns=Predictors)
+TestingData['Tensile']=y_test_orig
+TestingData['PredictedTensile']=Predictions
+TestingData.head()
+
+
